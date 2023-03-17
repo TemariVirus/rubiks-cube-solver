@@ -1,13 +1,13 @@
 ﻿namespace RubiksCubeSolver;
 
-enum FaceRotationModifier: byte
+enum FaceRotationModifier : byte
 {
     Clockwise = 0,
     AntiClockwise = 12,
     Double = 6,
 }
 
-enum FaceRotation: byte
+enum FaceRotation : byte
 {
     R = 1,
     L = 2,

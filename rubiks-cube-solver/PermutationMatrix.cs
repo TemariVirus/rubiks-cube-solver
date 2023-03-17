@@ -2,16 +2,15 @@
 
 namespace RubiksCubeSolver;
 
-readonly struct PermutationMatrix<T> : IEquatable<PermutationMatrix<T>>
-    where T : IMultiplyOperators<T, T, T>, IEquatable<T>
+readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
 {
     public int Size => RowPositions.Length;
-    public int[] RowPositions { get; private init; }
-    public T[] RowValues { get; private init; }
+    public byte[] RowPositions { get; private init; }
+    public Piece[] RowValues { get; private init; }
 
-    public T this[int i, int j] => RowPositions[i] == j ? RowValues[i] : default!;
+    public Piece this[int i, int j] => RowPositions[i] == j ? RowValues[i] : default!;
 
-    public PermutationMatrix(int[] rowPositions, T[] rowValues)
+    public PermutationMatrix(byte[] rowPositions, Piece[] rowValues)
     {
         if (rowPositions is null)
             throw new ArgumentNullException(nameof(rowPositions));
@@ -21,6 +20,8 @@ readonly struct PermutationMatrix<T> : IEquatable<PermutationMatrix<T>>
             throw new ArgumentException(
                 $"{nameof(rowPositions)} and {nameof(rowValues)} must be of the same length."
             );
+        if (rowPositions.Length > 256)
+            throw new ArgumentException("Array was too large.");
         if (rowPositions.Distinct().Count() != rowPositions.Length)
             throw new ArgumentException(
                 $"All elements in {nameof(rowPositions)} must be distinct."
@@ -30,40 +31,118 @@ readonly struct PermutationMatrix<T> : IEquatable<PermutationMatrix<T>>
         RowValues = rowValues;
     }
 
-    public bool Equals(PermutationMatrix<T> other) => this == other;
+    public Piece GetRowValue(int rowIndex) => RowValues[rowIndex];
 
-    public override bool Equals([NotNullWhen(true)] object? obj) =>
-        obj is PermutationMatrix<T> matrix && this == matrix;
-
-    public override int GetHashCode()
-    {
-        int hash = 0;
-        for (int i = 0; i < Size; i++)
-            hash ^= RowPositions[i].GetHashCode() ^ RowValues[i].GetHashCode();
-        return hash;
-    }
-
-    public PermutationMatrix<T> Clone() =>
-        new() { RowPositions = (int[])RowPositions.Clone(), RowValues = (T[])RowValues.Clone(), };
-
-    public T GetRowValue(int rowIndex) => RowValues[rowIndex];
-
-    public T GetColumnValue(int columnIndex)
+    public Piece GetColumnValue(int columnIndex)
     {
         for (int i = 0; true; i++)
             if (RowPositions[i] == columnIndex)
                 return RowValues[i];
     }
 
-    public PermutationMatrix<T> Pow(int power)
+    public bool Equals(PermutationMatrix other) => this == other;
+
+    public override bool Equals([NotNullWhen(true)] object? obj) =>
+        obj is PermutationMatrix matrix && this == matrix;
+
+    public override int GetHashCode()
     {
-        PermutationMatrix<T> ans = this;
-        for (int i = 1; i < power; i++)
-            ans *= this;
-        return ans;
+        int hash = 0;
+        for (int i = 0; i < Size; i++)
+            hash ^= RowPositions[i].GetHashCode() ^ RowValues[i]!.GetHashCode();
+        return hash;
     }
 
-    public static bool operator ==(PermutationMatrix<T> left, PermutationMatrix<T> right)
+    public PermutationMatrix Clone() =>
+        new() { RowPositions = (byte[])RowPositions.Clone(), RowValues = (Piece[])RowValues.Clone(), };
+
+    public static PermutationMatrix Identity(int size) =>
+        new()
+        {
+            RowPositions = Enumerable.Range(0, size).Select(i => (byte)i).ToArray(),
+            RowValues = Enumerable.Range(0, size).Select(i => new Piece() { Value = (byte)(i << 2) }).ToArray(),
+        };
+
+    public bool IsIdentity()
+    {
+        for (int i = 0; i < Size; i++)
+            if (RowPositions[i] != i)
+                return false;
+        return true;
+    }
+
+    public PermutationMatrix Inverse()
+    {
+        byte[] rowPositions = new byte[Size];
+        Piece[] rowValues = new Piece[Size];
+        for (byte i = 0; i < Size; i++)
+        {
+            int j = RowPositions[i];
+            rowPositions[j] = i;
+            rowValues[j] = RowValues[i];
+        }
+        return new() { RowPositions = rowPositions, RowValues = rowValues };
+    }
+
+    public PermutationMatrix Pow(int power)
+    {
+        if (power == 0)
+            return Identity(Size);
+        if (power < 0)
+            return Inverse().Pow(-power);
+
+        var ans = (this * this).Pow(power >> 1);
+        return (power & 0x1) == 0 ? ans : ans * this;
+    }
+
+    public PermutationMatrix[] Decompose(PermutationMatrix[] factors)
+    {
+        if (factors.Length <= 0)
+            throw new ArgumentException("Array of matrices to decompose into must not be empty.");
+
+        if (factors.Contains(this))
+            return new PermutationMatrix[] { this };
+
+        if (IsIdentity())
+            return Array.Empty<PermutationMatrix>();
+
+        PermutationMatrix[] factorInverses = factors.Select(f => f.Inverse()).ToArray();
+        // Meet-in-the-middle approach
+        List<(PermutationMatrix, LinkedListView<int>)> ring = new() { (this, new()) };
+        List<(PermutationMatrix, LinkedListView<int>)> otherRing = factors
+            .Select((m, i) => (m, new LinkedListView<int>(new int[] { i })))
+            .ToList();
+        Dictionary<PermutationMatrix, LinkedListView<int>> seen = ring.Concat(otherRing)
+            .ToDictionary(x => x.Item1, x => x.Item2);
+        bool isReversed = false;
+        while (true)
+        {
+            List<(PermutationMatrix, LinkedListView<int>)> newRing = new();
+            foreach (var (matrix, list) in ring)
+            {
+                for (int i = 0; i < factors.Length; i++)
+                {
+                    var factor = isReversed ? factors[i] : factorInverses[i];
+                    var composed = isReversed ? matrix * factor : factor * matrix;
+                    if (seen.TryGetValue(composed, out var otherList))
+                        return (
+                            isReversed
+                                ? list.Append(i).Concat(otherList.Reverse())
+                                : otherList.Append(i).Concat(list.Reverse())
+                        )
+                            .Select(i => factors[i])
+                            .ToArray();
+
+                    newRing.Add((composed, list.Append(i)));
+                }
+            }
+            isReversed = !isReversed;
+            ring = otherRing;
+            otherRing = newRing;
+        }
+    }
+
+    public static bool operator ==(PermutationMatrix left, PermutationMatrix right)
     {
         if (left.Size != right.Size)
             return false;
@@ -78,28 +157,26 @@ readonly struct PermutationMatrix<T> : IEquatable<PermutationMatrix<T>>
         return true;
     }
 
-    public static bool operator !=(PermutationMatrix<T> left, PermutationMatrix<T> right) =>
+    public static bool operator !=(PermutationMatrix left, PermutationMatrix right) =>
         !(left == right);
 
-    public static PermutationMatrix<T> operator *(
-        PermutationMatrix<T> left,
-        PermutationMatrix<T> right
+    public static PermutationMatrix operator *(
+        PermutationMatrix left,
+        PermutationMatrix right
     )
     {
-        #if DEBUG
         if (left.Size != right.Size)
             throw new ArgumentException("Matrices must be of same size.");
-        #endif
 
-        int[] rowPositions = new int[left.Size];
-        T[] rowValues = new T[right.Size];
+        byte[] rowPositions = new byte[left.Size];
+        Piece[] rowValues = new Piece[right.Size];
         for (int i = 0; i < left.Size; i++)
         {
             int j = left.RowPositions[i];
-            rowValues[i] = left.RowValues[i].Multiply(right.RowValues[j]);
+            rowValues[i] = left.RowValues[i] * right.RowValues[j];
             rowPositions[i] = right.RowPositions[j];
         }
 
-        return new PermutationMatrix<T>() { RowValues = rowValues, RowPositions = rowPositions };
+        return new PermutationMatrix() { RowValues = rowValues, RowPositions = rowPositions };
     }
 }

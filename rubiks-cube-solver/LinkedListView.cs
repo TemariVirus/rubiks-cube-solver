@@ -9,6 +9,15 @@ sealed class LinkedListView<T> : IEnumerable<T>
 
     public LinkedListView() { }
 
+    public LinkedListView(IEnumerable<T> collection)
+    {
+        if (!collection.Any())
+            return;
+
+        Head = new LinkedListView<T>(collection.SkipLast(1));
+        Last = collection.Last();
+    }
+
     private LinkedListView(LinkedListView<T> head, T last)
     {
         Head = head;
@@ -16,14 +25,6 @@ sealed class LinkedListView<T> : IEnumerable<T>
     }
 
     public LinkedListView<T> Append(T item) => new(this, item);
-    
-    public LinkedListView<T> Append(IEnumerable<T> items)
-    {
-        LinkedListView<T> result = this;
-        foreach (T item in items)
-            result = result.Append(item);
-        return result;
-    }
 
     public IEnumerator<T> GetEnumerator()
     {
