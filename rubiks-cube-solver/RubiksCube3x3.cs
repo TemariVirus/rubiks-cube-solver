@@ -203,18 +203,13 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
         );
     #endregion
 
-    public static RubiksCube3x3 Solved => new(None);
+    public static RubiksCube3x3 Solved => new() { Matrix = None };
 
     public PermutationMatrix<IPiece> Matrix { get; init; }
+    
+    public RubiksCube3x3 ApplyTransformation(PermutationMatrix<IPiece> other) => new() { Matrix = Matrix * other };
 
-    public RubiksCube3x3() { }
-
-    private RubiksCube3x3(PermutationMatrix<IPiece> matrix)
-    {
-        this.Matrix = matrix;
-    }
-
-    public RubiksCube3x3 ApplyTransformation(PermutationMatrix<IPiece> other) => new(Matrix * other);
+    public FaceRotation RotationFromFixed(FaceRotation rotation) => rotation;
 
     public void DrawCube(int xOffset, int yOffset)
     {
@@ -287,10 +282,8 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
     public bool Equals(RubiksCube3x3 other) => this == other;
 
     public static bool operator ==(RubiksCube3x3 left, RubiksCube3x3 right) => (Int128)left == (Int128)right;
-
     public static bool operator !=(RubiksCube3x3 left, RubiksCube3x3 right) => (Int128)left != (Int128)right;
-
-    public static implicit operator Int128(RubiksCube3x3 cube)
+    public static explicit operator Int128(RubiksCube3x3 cube)
     {
         Int128 ans = 0;
         for (int i = 0; i < 8; i++)

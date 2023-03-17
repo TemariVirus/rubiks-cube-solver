@@ -3,7 +3,7 @@
 namespace RubiksCubeSolver;
 
 interface IRubiksCube<TSelf>
-    where TSelf : IRubiksCube<TSelf>, IEquatable<TSelf>, new()
+    where TSelf : IRubiksCube<TSelf>, IEquatable<TSelf>
 {
     public static abstract TSelf Solved { get; }
     static abstract PermutationMatrix<IPiece> R { get; }
@@ -24,10 +24,10 @@ interface IRubiksCube<TSelf>
 
     public TSelf ApplyTransformation(PermutationMatrix<IPiece> other);
 
+    public FaceRotation RotationFromFixed(FaceRotation rotation);
+
     public void DrawCube(int xOffset, int yOffset);
-
-    public TSelf Clone() => new() { Matrix = Matrix.Clone() };
-
+    
     public static abstract bool operator ==(TSelf left, TSelf right);
 
     public static abstract bool operator !=(TSelf left, TSelf right);
@@ -49,13 +49,24 @@ static class RubiksCubeExtensions
         HashSet<T> prevMap = new();
         // Meet-in-the-middle approach to reduce time of search by a quadratic factor
         Dictionary<T, LinkedListView<FaceRotation>> map = new() { { scrambled, new() } };
-        Dictionary<T, LinkedListView<FaceRotation>> map2 = new() { { T.Solved, new() } };
+        Dictionary<T, LinkedListView<FaceRotation>> map2 = new() { { T.Solved.MakeSameRotationOffsetAs(scrambled), new() } };
 
+        FaceRotation[] solution = Array.Empty<FaceRotation>();
+        long count = 0;
+        Thread thread = new(async () =>
+        {
+            PeriodicTimer timer = new(TimeSpan.FromMilliseconds(200));
+            while (await timer.WaitForNextTickAsync())
+            {
+                ConsoleHelper.WriteAt($"Searched: {count}", 1, 1);
+                if (solution.Length > 0) break;
+            }
+        });
+        thread.Start();
         while (true)
         {
             ConcurrentDictionary<T, LinkedListView<FaceRotation>> newMap = new();
-            FaceRotation[] solution = null;
-            Parallel.ForEach(map, (x, loopState, _) =>
+            Parallel.ForEach(map, (x, loopState) =>
             {
                 var (cube, moves) = x;
                 // Try every possible rotation for each cube state
@@ -66,6 +77,7 @@ static class RubiksCubeExtensions
                     if (prevMap.Contains(rotated) || newMap.ContainsKey(rotated))
                         continue;
 
+                    count++;
                     if (map2.TryGetValue(rotated, out LinkedListView<FaceRotation>? moves2))
                     {
                         // For moves made from solved state, reverse their order and direction
@@ -78,7 +90,7 @@ static class RubiksCubeExtensions
                     newMap.TryAdd(rotated, moves.Append(fr));
                 }
             });
-            if (solution != null) 
+            if (solution.Length > 0)
                 return solution;
 
             prevMap = map.Keys.ToHashSet();

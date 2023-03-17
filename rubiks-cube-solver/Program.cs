@@ -19,14 +19,13 @@ sealed class Program
 
         const int X_OFFSET = 4;
         const int Y_OFFSET = 4;
-        RubiksCube3x3 cube = RubiksCube3x3.Solved;
+        RubiksCube2x2 cube = RubiksCube2x2.Solved;
         cube.DrawCube(X_OFFSET, Y_OFFSET);
 
         // Main loop
         while (true)
         {
             Console.CursorVisible = false;
-            Thread.Sleep(20);
             // Check for key presses
             ConsoleKeyInfo keyPressed = Console.KeyAvailable
                 ? Console.ReadKey(true)
@@ -54,8 +53,8 @@ sealed class Program
                 keyPressed.Modifiers == ConsoleModifiers.Shift
                     ? FaceRotationModifier.AntiClockwise
                     : keyPressed.Modifiers == ConsoleModifiers.Alt
-                        ? FaceRotationModifier.Double
-                        : FaceRotationModifier.Clockwise;
+                    ? FaceRotationModifier.Double
+                    : FaceRotationModifier.Clockwise;
             cube = cube.MakeRotation((FaceRotation)((int)modifier + (int)rotation));
 
             cube.DrawCube(X_OFFSET, Y_OFFSET);

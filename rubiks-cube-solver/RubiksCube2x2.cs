@@ -150,22 +150,65 @@ readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCub
         X.Pow(2) * Y.Pow(3) * TopRightFixedClockwise,
         X.Pow(2) * Y.Pow(3) * TopRightFixedAntiClockwise,
     };
-    public static RubiksCube2x2 Solved => new(None);
+    public static readonly Dictionary<FaceRotation, FaceRotation>[] RotationsMap =
+    {
+        // None
+        new Dictionary<FaceRotation, FaceRotation>()
+        {
+            { FaceRotation.R, FaceRotation.R },
+            { FaceRotation.L, FaceRotation.L },
+            { FaceRotation.U, FaceRotation.U },
+            { FaceRotation.D, FaceRotation.D },
+            { FaceRotation.F, FaceRotation.F },
+            { FaceRotation.B, FaceRotation.B },
+        },
+        // TopRightFixedAntiClockwise
+        new Dictionary<FaceRotation, FaceRotation>()
+        {
+            { FaceRotation.R, FaceRotation.R },
+            { FaceRotation.L, FaceRotation.L },
+            { FaceRotation.U, FaceRotation.U },
+            { FaceRotation.D, FaceRotation.D },
+            { FaceRotation.F, FaceRotation.F },
+            { FaceRotation.B, FaceRotation.B },
+        },
+        TopRightFixedClockwise,
+        Y,
+        Y * TopRightFixedAntiClockwise,
+        Y * TopRightFixedClockwise,
+        Y.Pow(2),
+        Y.Pow(2) * TopRightFixedAntiClockwise,
+        Y.Pow(2) * TopRightFixedClockwise,
+        Y,
+        Y.Pow(3) * TopRightFixedAntiClockwise,
+        Y.Pow(3) * TopRightFixedClockwise,
+        X.Pow(2),
+        X.Pow(2) * TopRightFixedAntiClockwise,
+        X.Pow(2) * TopRightFixedClockwise,
+        X.Pow(2) * Y,
+        X.Pow(2) * Y * TopRightFixedAntiClockwise,
+        X.Pow(2) * Y * TopRightFixedClockwise,
+        X.Pow(2) * Y.Pow(2),
+        X.Pow(2) * Y.Pow(2) * TopRightFixedAntiClockwise,
+        X.Pow(2) * Y.Pow(2) * TopRightFixedClockwise,
+        X.Pow(2) * Y.Pow(3),
+        X.Pow(2) * Y.Pow(3) * TopRightFixedAntiClockwise,
+        X.Pow(2) * Y.Pow(3) * TopRightFixedClockwise,
+    };
+    public static RubiksCube2x2 Solved => new() { Matrix = None };
 
     public PermutationMatrix<IPiece> Matrix { get; init; }
 
-    public RubiksCube2x2() { }
+    public RubiksCube2x2 ApplyTransformation(PermutationMatrix<IPiece> other) => new() { Matrix = Matrix * other };
 
-    private RubiksCube2x2(PermutationMatrix<IPiece> matrix)
-    {
-        Matrix = matrix;
-    }
-   
     public RubiksCube2x2 RotateToFixed() => ApplyTransformation(UnrotationsMap[Matrix.RowPositions[0] * 3 + Matrix.RowValues[0].Parity]);
 
-    public RubiksCube2x2 ApplyTransformation(PermutationMatrix<IPiece> other) => new(Matrix * other);
+    public FaceRotation RotationFromFixed(FaceRotation rotation)
+    {
 
-    public void DrawCube(int xOffset = 0, int yOffset = 0)
+    }
+
+    public void DrawCube(int xOffset, int yOffset)
     {
         // Green face (left)
         ConsoleHelper.WriteAt("[]", 0 + xOffset, 2 + yOffset, Matrix.GetColumnValue(Piece.YOG)[2]);
@@ -199,8 +242,6 @@ readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCub
         ConsoleHelper.WriteAt("[]", 14 + xOffset, 3 + yOffset, Matrix.GetColumnValue(Piece.YGR)[0]);
     }
 
-    public RubiksCube2x2 Clone() => new(Matrix.Clone());
-
     public override int GetHashCode() => ((long)this).GetHashCode();
 
     public override bool Equals([NotNullWhen(true)] object? obj) => obj is RubiksCube2x2 cube && this == cube;
@@ -208,13 +249,11 @@ readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCub
     public bool Equals(RubiksCube2x2 other) => this == other;
 
     public static bool operator ==(RubiksCube2x2 left, RubiksCube2x2 right) => (long)left == (long)right;
-
     public static bool operator !=(RubiksCube2x2 left, RubiksCube2x2 right) => (long)left != (long)right;
-
-    public static implicit operator long(RubiksCube2x2 cube)
+    public static explicit operator long(RubiksCube2x2 cube)
     {
-        //PermutationMatrix<IPiece> matrix = cube.RotateToFixed().Matrix;
-        PermutationMatrix<IPiece> matrix = cube.Matrix;
+        PermutationMatrix<IPiece> matrix = cube.RotateToFixed().Matrix;
+        //PermutationMatrix<IPiece> matrix = cube.Matrix;
         long ans = 0;
         for (int i = 0; i < matrix.Size; i++)
             ans |=
