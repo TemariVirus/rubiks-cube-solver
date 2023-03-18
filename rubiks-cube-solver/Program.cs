@@ -4,7 +4,7 @@ sealed class Program
 {
     const int X_OFFSET = 4;
     const int Y_OFFSET = 4;
-    static RubiksCube3x3 cube = RubiksCube3x3.Solved;
+    static RubiksCube2x2 cube = RubiksCube2x2.Solved;
     static readonly Dictionary<ConsoleKey, FaceRotation> keyMap =
         new()
         {

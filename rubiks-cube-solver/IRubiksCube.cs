@@ -28,7 +28,7 @@ interface IRubiksCube<TSelf>
     static readonly PermutationMatrix[] CubeOrientations = Enumerable
         .Repeat(new[] { TSelf.None, X, X.Pow(2), X.Pow(3), Z, Z.Pow(3) }, 4)
         .SelectMany(x => x)
-        .Select((o, i) => o * Y.Pow(i / 6))
+        .Select((o, i) => o * Y.Pow((i / 6) + 1))
         .ToArray();
 
     public PermutationMatrix Matrix { get; init; }
@@ -86,16 +86,17 @@ static class RubiksCubeExtensions
 
                         foreach (var o in IRubiksCube<T>.CubeOrientations)
                         {
-                            T test = scrambled.ApplyTransformation(o);
-                            foreach (var move in secondHalf)
+                            T test = scrambled.ApplyTransformation(T.None);
+                            var secondHalfTransformed = secondHalf.Select(r => TransformRotation(r, o));
+                            foreach (var move in secondHalfTransformed)
                                 test = test.MakeRotation(move);
                             if (test == T.Solved)
                                 return firstHalf
-                                    .Concat(secondHalf
-                                        .Select(m => TransformRotation(m, o))
-                                     )
+                                    .Concat(secondHalfTransformed)
                                     .ToArray();
                         }
+
+                        throw new Exception();
                     }
 
                     newMap.TryAdd(rotated, moves.Append(fr));
@@ -136,27 +137,23 @@ static class RubiksCubeExtensions
             };
 
             int[] facing = orientation
-                .Inverse()
                 .Decompose(new PermutationMatrix[] { IRubiksCube<T>.X, IRubiksCube<T>.Y, IRubiksCube<T>.Z })
                 .Select(FactorToInt)
                 .ToArray();
             int modifier = (int)(rotation - 1) / 6;
             modifier *= 6;
             rotation = (FaceRotation)((int)rotation - modifier);
-            foreach (var f in facing)
+            foreach (int f in facing)
                 rotation = rotationMaps[(int)rotation - 1][f];
             rotation = (FaceRotation)((int)rotation + modifier);
 
             return rotation;
 
             static int FactorToInt(PermutationMatrix factor) =>
-                factor.RowPositions[0] switch
-                {
-                    3 => 0,
-                    1 => 1,
-                    5 => 2,
-                    _ => throw new Exception($"The code says 'F*ck you' ({nameof(PermutationMatrix)}.{nameof(PermutationMatrix.Decompose)} probably broke).")
-                };
+                factor == IRubiksCube<T>.X ? 0 :
+                factor == IRubiksCube<T>.Y ? 1 :
+                factor == IRubiksCube<T>.Z ? 2 :
+                    throw new Exception($"The code says 'F*ck you' ({nameof(PermutationMatrix)}.{nameof(PermutationMatrix.Decompose)} probably broke).");
         }
     }
 }

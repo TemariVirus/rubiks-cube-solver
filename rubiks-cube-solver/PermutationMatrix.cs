@@ -40,10 +40,10 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
                 return RowValues[i];
     }
 
-    public bool Equals(PermutationMatrix other) => this == other;
-
     public override bool Equals([NotNullWhen(true)] object? obj) =>
         obj is PermutationMatrix matrix && this == matrix;
+
+    public bool Equals(PermutationMatrix other) => this == other;
 
     public override int GetHashCode()
     {
@@ -79,7 +79,7 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
         {
             int j = RowPositions[i];
             rowPositions[j] = i;
-            rowValues[j] = RowValues[i];
+            rowValues[j] = RowValues[i].Inverse();
         }
         return new() { RowPositions = rowPositions, RowValues = rowValues };
     }
@@ -108,23 +108,25 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
 
         PermutationMatrix[] factorInverses = factors.Select(f => f.Inverse()).ToArray();
         // Meet-in-the-middle approach
-        List<(PermutationMatrix, LinkedListView<int>)> ring = new() { (this, new()) };
-        List<(PermutationMatrix, LinkedListView<int>)> otherRing = factors
-            .Select((m, i) => (m, new LinkedListView<int>(new int[] { i })))
-            .ToList();
-        Dictionary<PermutationMatrix, LinkedListView<int>> seen = ring.Concat(otherRing)
-            .ToDictionary(x => x.Item1, x => x.Item2);
+        Dictionary<PermutationMatrix, LinkedListView<int>> ring = new() { { this, new() } };
+        Dictionary<PermutationMatrix, LinkedListView<int>> otherRing = factors
+            .Select((m, i) => (m, i))
+            .ToDictionary(kvp => kvp.m, kvp => new LinkedListView<int>(new[] { kvp.i }));
+        HashSet<PermutationMatrix> seen = ring.Concat(otherRing)
+            .Select(x => x.Key)
+            .ToHashSet();
         bool isReversed = false;
         while (true)
         {
-            List<(PermutationMatrix, LinkedListView<int>)> newRing = new();
+            Dictionary<PermutationMatrix, LinkedListView<int>> newRing = new();
             foreach (var (matrix, list) in ring)
             {
                 for (int i = 0; i < factors.Length; i++)
                 {
                     var factor = isReversed ? factors[i] : factorInverses[i];
-                    var composed = isReversed ? matrix * factor : factor * matrix;
-                    if (seen.TryGetValue(composed, out var otherList))
+                    var composed = matrix * factor;
+
+                    if (otherRing.TryGetValue(composed, out var otherList))
                         return (
                             isReversed
                                 ? list.Append(i).Concat(otherList.Reverse())
@@ -133,7 +135,11 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
                             .Select(i => factors[i])
                             .ToArray();
 
-                    newRing.Add((composed, list.Append(i)));
+                    if (seen.Contains(composed))
+                        continue;
+
+                    newRing.Add(composed, list.Append(i));
+                    seen.Add(composed);
                 }
             }
             isReversed = !isReversed;
@@ -148,10 +154,7 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
             return false;
 
         for (int i = 0; i < left.Size; i++)
-            if (
-                left.RowPositions[i] != right.RowPositions[i]
-                || left.RowValues[i].Equals(right.RowValues[i])
-            )
+            if (left.RowPositions[i] != right.RowPositions[i] || left.RowValues[i] != right.RowValues[i])
                 return false;
 
         return true;
