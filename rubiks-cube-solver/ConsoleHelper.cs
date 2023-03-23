@@ -12,7 +12,13 @@ static class ConsoleHelper
         Console.SetBufferSize(width, height);
     }
 
-    public static void WriteAt(object text, int x, int y, ConsoleColor foreground = ConsoleColor.White, ConsoleColor background = ConsoleColor.Black)
+    public static void WriteAt(
+        object text,
+        int x,
+        int y,
+        ConsoleColor foreground = ConsoleColor.White,
+        ConsoleColor background = ConsoleColor.Black
+    )
     {
         Console.CursorLeft = x;
         Console.CursorTop = y;

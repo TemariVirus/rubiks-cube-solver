@@ -2,36 +2,93 @@
 
 namespace RubiksCubeSolver;
 
+readonly struct RubiksCube3x3CornerHash : IEquatable<RubiksCube3x3CornerHash>
+{
+    public long Value { get; }
+    public int Distance => (int)(Value >> 40);
+    public long Hash => Value & 0xff_ffff_ffff;
+
+    public RubiksCube3x3CornerHash(long hash, int distance)
+    {
+        Value = (long)distance << 40 | hash;
+    }
+
+    public RubiksCube3x3CornerHash(Span<byte> bytes)
+    {
+        Value =
+            bytes[0]
+            | ((long)bytes[1] << 8)
+            | ((long)bytes[2] << 16)
+            | ((long)bytes[3] << 24)
+            | ((long)bytes[4] << 32)
+            | ((long)bytes[5] << 40);
+    }
+
+    public override bool Equals([NotNullWhen(true)] object? obj) =>
+        obj is RubiksCube3x3CornerHash hash && Equals(hash);
+
+    public bool Equals(RubiksCube3x3CornerHash other) => Hash == other.Hash;
+
+    public override int GetHashCode() => (int)Value;
+}
+
+readonly struct RubiksCube3x3EdgeHash : IEquatable<RubiksCube3x3EdgeHash>
+{
+    public long Value { get; }
+    public int Distance => (int)(Value >> 32);
+    public int Hash => (int)Value;
+
+    public RubiksCube3x3EdgeHash(long hash, int distance)
+    {
+        Value = (long)distance << 30 | hash;
+    }
+
+    public RubiksCube3x3EdgeHash(Span<byte> bytes)
+    {
+        Value =
+            bytes[0]
+            | ((long)bytes[1] << 8)
+            | ((long)bytes[2] << 16)
+            | ((long)bytes[3] << 24)
+            | ((long)bytes[4] << 32);
+    }
+
+    public override bool Equals([NotNullWhen(true)] object? obj) =>
+        obj is RubiksCube3x3EdgeHash hash && Equals(hash);
+
+    public bool Equals(RubiksCube3x3EdgeHash other) => Hash == other.Hash;
+
+    public override int GetHashCode() => Hash;
+}
+
 readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCube3x3>
 {
     #region // Transformations
     static PermutationMatrix None =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WBR.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.YO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WBR.Id,
+                Piece.WRG.Id,
+                Piece.WGO.Id,
+                Piece.WOB.Id,
+                Piece.YBO.Id,
+                Piece.YRB.Id,
+                Piece.YGR.Id,
+                Piece.YOG.Id,
+                Piece.WR.Id,
+                Piece.WG.Id,
+                Piece.WO.Id,
+                Piece.WB.Id,
+                Piece.RB.Id,
+                Piece.GR.Id,
+                Piece.OG.Id,
+                Piece.BO.Id,
+                Piece.YB.Id,
+                Piece.YR.Id,
+                Piece.YG.Id,
+                Piece.YO.Id
+            ),
+            new(
                 Piece.WBR,
                 Piece.WRG,
                 Piece.WGO,
@@ -51,37 +108,35 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB,
                 Piece.YR,
                 Piece.YG,
-                Piece.YO,
-            }
+                Piece.YO
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.None => None;
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.R =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WOB.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.WBR.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.YO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WOB.Id,
+                Piece.WRG.Id,
+                Piece.WGO.Id,
+                Piece.YBO.Id,
+                Piece.YRB.Id,
+                Piece.WBR.Id,
+                Piece.YGR.Id,
+                Piece.YOG.Id,
+                Piece.WR.Id,
+                Piece.WG.Id,
+                Piece.WO.Id,
+                Piece.BO.Id,
+                Piece.WB.Id,
+                Piece.GR.Id,
+                Piece.OG.Id,
+                Piece.YB.Id,
+                Piece.RB.Id,
+                Piece.YR.Id,
+                Piece.YG.Id,
+                Piece.YO.Id
+            ),
+            new(
                 Piece.WBR.Rotate(2),
                 Piece.WRG,
                 Piece.WGO,
@@ -101,36 +156,34 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB.Rotate(0),
                 Piece.YR,
                 Piece.YG,
-                Piece.YO,
-            }
+                Piece.YO
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.L =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WBR.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.YO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WBR.Id,
+                Piece.YGR.Id,
+                Piece.WRG.Id,
+                Piece.WOB.Id,
+                Piece.YBO.Id,
+                Piece.YRB.Id,
+                Piece.YOG.Id,
+                Piece.WGO.Id,
+                Piece.WR.Id,
+                Piece.GR.Id,
+                Piece.WO.Id,
+                Piece.WB.Id,
+                Piece.RB.Id,
+                Piece.YG.Id,
+                Piece.WG.Id,
+                Piece.BO.Id,
+                Piece.YB.Id,
+                Piece.YR.Id,
+                Piece.OG.Id,
+                Piece.YO.Id
+            ),
+            new(
                 Piece.WBR,
                 Piece.WRG.Rotate(1),
                 Piece.WGO.Rotate(2),
@@ -150,36 +203,34 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB,
                 Piece.YR,
                 Piece.YG.Rotate(0),
-                Piece.YO,
-            }
+                Piece.YO
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.U =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WRG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.WBR.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.YO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WRG.Id,
+                Piece.WGO.Id,
+                Piece.WOB.Id,
+                Piece.WBR.Id,
+                Piece.YBO.Id,
+                Piece.YRB.Id,
+                Piece.YGR.Id,
+                Piece.YOG.Id,
+                Piece.WG.Id,
+                Piece.WO.Id,
+                Piece.WB.Id,
+                Piece.WR.Id,
+                Piece.RB.Id,
+                Piece.GR.Id,
+                Piece.OG.Id,
+                Piece.BO.Id,
+                Piece.YB.Id,
+                Piece.YR.Id,
+                Piece.YG.Id,
+                Piece.YO.Id
+            ),
+            new(
                 Piece.WBR.Rotate(0),
                 Piece.WRG.Rotate(0),
                 Piece.WGO.Rotate(0),
@@ -199,36 +250,34 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB,
                 Piece.YR,
                 Piece.YG,
-                Piece.YO,
-            }
+                Piece.YO
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.D =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WBR.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.YO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.YG.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WBR.Id,
+                Piece.WRG.Id,
+                Piece.WGO.Id,
+                Piece.WOB.Id,
+                Piece.YOG.Id,
+                Piece.YBO.Id,
+                Piece.YRB.Id,
+                Piece.YGR.Id,
+                Piece.WR.Id,
+                Piece.WG.Id,
+                Piece.WO.Id,
+                Piece.WB.Id,
+                Piece.RB.Id,
+                Piece.GR.Id,
+                Piece.OG.Id,
+                Piece.BO.Id,
+                Piece.YO.Id,
+                Piece.YB.Id,
+                Piece.YR.Id,
+                Piece.YG.Id
+            ),
+            new(
                 Piece.WBR,
                 Piece.WRG,
                 Piece.WGO,
@@ -248,36 +297,34 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB.Rotate(0),
                 Piece.YR.Rotate(0),
                 Piece.YG.Rotate(0),
-                Piece.YO.Rotate(0),
-            }
+                Piece.YO.Rotate(0)
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.F =>
         new(
-            new byte[]
-            {
-                (byte)Piece.YRB.Id,
-                (byte)Piece.WBR.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.BO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.YO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.YRB.Id,
+                Piece.WBR.Id,
+                Piece.WGO.Id,
+                Piece.WOB.Id,
+                Piece.YBO.Id,
+                Piece.YGR.Id,
+                Piece.WRG.Id,
+                Piece.YOG.Id,
+                Piece.RB.Id,
+                Piece.WG.Id,
+                Piece.WO.Id,
+                Piece.WB.Id,
+                Piece.YR.Id,
+                Piece.WR.Id,
+                Piece.OG.Id,
+                Piece.BO.Id,
+                Piece.YB.Id,
+                Piece.GR.Id,
+                Piece.YG.Id,
+                Piece.YO.Id
+            ),
+            new(
                 Piece.WBR.Rotate(1),
                 Piece.WRG.Rotate(2),
                 Piece.WGO,
@@ -297,36 +344,34 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB,
                 Piece.YR.Rotate(0),
                 Piece.YG,
-                Piece.YO,
-            }
+                Piece.YO
+            )
         );
     static PermutationMatrix IRubiksCube<RubiksCube3x3>.B =>
         new(
-            new byte[]
-            {
-                (byte)Piece.WBR.Id,
-                (byte)Piece.WRG.Id,
-                (byte)Piece.YOG.Id,
-                (byte)Piece.WGO.Id,
-                (byte)Piece.WOB.Id,
-                (byte)Piece.YRB.Id,
-                (byte)Piece.YGR.Id,
-                (byte)Piece.YBO.Id,
-                (byte)Piece.WR.Id,
-                (byte)Piece.WG.Id,
-                (byte)Piece.OG.Id,
-                (byte)Piece.WB.Id,
-                (byte)Piece.RB.Id,
-                (byte)Piece.GR.Id,
-                (byte)Piece.YO.Id,
-                (byte)Piece.WO.Id,
-                (byte)Piece.YB.Id,
-                (byte)Piece.YR.Id,
-                (byte)Piece.YG.Id,
-                (byte)Piece.BO.Id
-            },
-            new Piece[]
-            {
+            new(
+                Piece.WBR.Id,
+                Piece.WRG.Id,
+                Piece.YOG.Id,
+                Piece.WGO.Id,
+                Piece.WOB.Id,
+                Piece.YRB.Id,
+                Piece.YGR.Id,
+                Piece.YBO.Id,
+                Piece.WR.Id,
+                Piece.WG.Id,
+                Piece.OG.Id,
+                Piece.WB.Id,
+                Piece.RB.Id,
+                Piece.GR.Id,
+                Piece.YO.Id,
+                Piece.WO.Id,
+                Piece.YB.Id,
+                Piece.YR.Id,
+                Piece.YG.Id,
+                Piece.BO.Id
+            ),
+            new(
                 Piece.WBR,
                 Piece.WRG,
                 Piece.WGO.Rotate(1),
@@ -346,11 +391,22 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                 Piece.YB,
                 Piece.YR,
                 Piece.YG,
-                Piece.YO.Rotate(0),
-            }
+                Piece.YO.Rotate(0)
+            )
         );
     #endregion
+
     public static RubiksCube3x3 Solved => new() { Matrix = None };
+
+    private static readonly PatternDistancesTable CornerDistances = new("3x3CornerDistances");
+    private static readonly PatternDistancesTable FirstSixEdgeDistances =
+        new("3x3FirstSixEdgeDistances");
+    private static readonly PatternDistancesTable LastSixEdgeDistances =
+        new("3x3LastSixEdgeDistances");
+
+    private static readonly Dictionary<RubiksCube3x3, FaceRotation[]> NearSolutions =
+        Solved.GenerateNearSolutions(1);
+
     public PermutationMatrix Matrix { get; init; }
 
     public RubiksCube3x3 ApplyTransformation(PermutationMatrix other) =>
@@ -660,6 +716,191 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
         );
     }
 
+    public FaceRotation[] Solve(out int count)
+    {
+        count = 0;
+        if (NearSolutions.TryGetValue(this, out FaceRotation[]? solution))
+            return solution;
+
+        solution = new FaceRotation[20];
+        Stack<(RubiksCube3x3, FaceRotation, int)> cubes = new();
+        PriorityQueue<(RubiksCube3x3, FaceRotation, int), int> newCubes = new();
+        // Iterative deepening A*
+        int maxdepth = GetSolveLengthLowerBound();
+        for (; true; )
+        {
+            int nextMaxDepth = 20; // Cannot exceed God's number
+            // Start search with all cubes 1 move away
+            count += IterateAllMoves(this, (FaceRotation)7, 0, ref nextMaxDepth);
+
+            // Depth-first heuristic-based search (A*)
+            while (cubes.Count > 0)
+            {
+                var (cube, rotation, depth) = cubes.Pop();
+                solution[depth - 1] = rotation;
+                if (depth == maxdepth)
+                    if (cube == Solved)
+                        return solution[..depth];
+
+                count += IterateAllMoves(cube, rotation, depth, ref nextMaxDepth);
+            }
+            maxdepth = nextMaxDepth;
+        }
+
+        int IterateAllMoves(
+            RubiksCube3x3 cube,
+            FaceRotation rotation,
+            int depth,
+            ref int nextMaxDepth
+        )
+        {
+            // Try all possible moves on cube
+            depth++;
+            foreach (var fr in FaceRotationExtensions.Rotations)
+            {
+                // Skip if rotation is in same direction as previous move
+                if (((int)fr & 0x7) == ((int)rotation & 0x7))
+                    continue;
+
+                var rotated = cube.MakeRotation(fr);
+
+                // Skip if lower bound is too high
+                int solveLengthLowerBound = depth + rotated.GetSolveLengthLowerBound();
+                if (solveLengthLowerBound > maxdepth)
+                {
+                    nextMaxDepth = Math.Min(solveLengthLowerBound, nextMaxDepth);
+                    continue;
+                }
+
+                // Negate lower bound so that lowest lower bounds are dequeued last
+                newCubes.Enqueue((rotated, fr, depth), -solveLengthLowerBound + depth);
+            }
+
+            // Push new states to stack, with lowest lower bounds last
+            int count = newCubes.Count;
+            while (newCubes.Count > 0)
+                cubes.Push(newCubes.Dequeue());
+
+            return count;
+        }
+    }
+
+    private Dictionary<RubiksCube3x3, FaceRotation[]> GenerateNearSolutions(int depth)
+    {
+        Dictionary<RubiksCube3x3, FaceRotation[]> nearSolutions =
+            new() { { this, Array.Empty<FaceRotation>() } };
+
+        List<RubiksCube3x3> cubes = new() { this };
+        for (int i = 0; i < depth; i++)
+        {
+            List<RubiksCube3x3> nextCubes = new();
+            foreach (var cube in cubes)
+            {
+                foreach (var fr in FaceRotationExtensions.Rotations)
+                {
+                    var rotated = cube.MakeRotation(fr);
+
+                    if (
+                        !nearSolutions.TryAdd(
+                            rotated,
+                            nearSolutions[cube].Prepend(fr.ReverseRotation()).ToArray()
+                        )
+                    )
+                        continue;
+
+                    nextCubes.Add(rotated);
+                }
+            }
+        }
+
+        return nearSolutions;
+    }
+
+    private int GetCornerPermIndex()
+    {
+        const int ORIENTATION_RANKS_COUNT = 2187; // 2187 = 3^7
+
+        int permutationRank = 0;
+        int orientationRank = 0;
+        Span<bool> usedIndices = stackalloc bool[8];
+        for (int i = 7; i > 0; i--)
+        {
+            int pos = Matrix.RowPositions[i];
+            permutationRank += pos;
+            for (int j = 0; j < pos; j++)
+                if (usedIndices[j])
+                    permutationRank--;
+            permutationRank *= i;
+            usedIndices[pos] = true;
+
+            orientationRank *= 3;
+            orientationRank += Matrix.RowValues[i].Parity;
+        }
+
+        return permutationRank * ORIENTATION_RANKS_COUNT + orientationRank;
+    }
+
+    private int GetFirstSixEdgesPermIndex()
+    {
+        const int OFFSET = 8;
+        const int ORIENTATION_RANKS_COUNT = 64; // 64 = 2^6
+
+        int permutationRank = 0;
+        int orientationRank = 0;
+        Span<bool> usedIndices = stackalloc bool[12];
+        for (int i = 0; i < 6; i++)
+        {
+            int index = i + OFFSET;
+            int pos = Matrix.RowPositions[index] - 8;
+            permutationRank *= 12 - i;
+            permutationRank += pos;
+            for (int j = 0; j < pos; j++)
+                if (usedIndices[j])
+                    permutationRank--;
+            usedIndices[pos] = true;
+
+            orientationRank *= 2;
+            orientationRank += Matrix.RowValues[index].Parity;
+        }
+
+        return permutationRank * ORIENTATION_RANKS_COUNT + orientationRank;
+    }
+
+    private int GetLastSixEdgesPermIndex()
+    {
+        const int OFFSET = 8 + 6;
+        const int ORIENTATION_RANKS_COUNT = 64; // 64 = 2^6
+
+        int permutationRank = 0;
+        int orientationRank = 0;
+        Span<bool> usedIndices = stackalloc bool[12];
+        for (int i = 0; i < 6; i++)
+        {
+            int index = i + OFFSET;
+            int pos = Matrix.RowPositions[index] - 8;
+            permutationRank *= 12 - i;
+            permutationRank += pos;
+            for (int j = 0; j < pos; j++)
+                if (usedIndices[j])
+                    permutationRank--;
+            usedIndices[pos] = true;
+
+            orientationRank *= 2;
+            orientationRank += Matrix.RowValues[index].Parity;
+        }
+
+        return permutationRank * ORIENTATION_RANKS_COUNT + orientationRank;
+    }
+
+    private int GetSolveLengthLowerBound() =>
+        Math.Max(
+            Math.Max(
+                CornerDistances.GetDistance(GetCornerPermIndex()),
+                FirstSixEdgeDistances.GetDistance(GetFirstSixEdgesPermIndex())
+            ),
+            LastSixEdgeDistances.GetDistance(GetLastSixEdgesPermIndex())
+        );
+
     public override int GetHashCode() => ((Int128)this).GetHashCode();
 
     public override bool Equals([NotNullWhen(true)] object? obj) =>
@@ -678,11 +919,11 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
         Int128 ans = 0;
         for (int i = 0; i < 8; i++)
             ans |=
-                (Int128)(cube.Matrix.GetRowValue(i).Parity << 3 | cube.Matrix.RowPositions[i])
+                (Int128)(cube.Matrix.RowValues[i].Parity << 3 | cube.Matrix.RowPositions[i])
                 << (i * 6);
         for (int i = 9; i < 20; i++)
             ans |=
-                (Int128)(cube.Matrix.GetRowValue(i).Parity << 5 | cube.Matrix.RowPositions[i])
+                (Int128)(cube.Matrix.RowValues[i].Parity << 5 | cube.Matrix.RowPositions[i])
                 << (i * 6);
         return ans;
     }

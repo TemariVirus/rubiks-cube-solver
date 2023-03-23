@@ -1,6 +1,6 @@
 ﻿namespace RubiksCubeSolver;
 
-readonly record struct Piece : IEquatable<Piece>
+readonly record struct Piece : IUInt32conversions<Piece>
 {
     static readonly ConsoleColor[][] Colors =
     {
@@ -66,9 +66,21 @@ readonly record struct Piece : IEquatable<Piece>
         return new() { Value = (byte)((Value & ~0x3) | newParity) };
     }
 
-    public bool Equals(Piece other) => Value == other.Value;
+    public static uint ToUInt32(Piece value)
+    {
+        int ans = value.IsCorner ? 0 : 1;
+        ans |= (value.IsCorner ? value.Id : value.Id - 8) << 1;
+        ans |= value.Parity << (value.IsCorner ? 4 : 5);
+        return (uint)ans;
+    }
 
-    public override int GetHashCode() => Value;
+    public static Piece FromUInt32(uint value)
+    {
+        bool isCorner = (value & 0x1) == 0;
+        uint id = ((value >> 1) & (isCorner ? 0x7u : 0xfu)) + (isCorner ? 0u : 8u);
+        uint parity = value >> (isCorner ? 4 : 5);
+        return new Piece { Value = (byte)(id << 2 | parity) };
+    }
 
     public static Piece operator *(Piece left, Piece right) => left.Rotate(right.Parity);
 }

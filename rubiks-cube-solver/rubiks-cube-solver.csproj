@@ -8,4 +8,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="3x3CornerDistances" />
+    <None Remove="3x3FirstSixEdgeDistances" />
+    <None Remove="3x3LastSixEdgeDistances" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="3x3CornerDistances">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="3x3FirstSixEdgeDistances">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="3x3LastSixEdgeDistances">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

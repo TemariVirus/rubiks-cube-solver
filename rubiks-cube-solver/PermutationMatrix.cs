@@ -2,31 +2,40 @@
 
 namespace RubiksCubeSolver;
 
-readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
+internal readonly record struct ConvertibleInt32 : IUInt32conversions<ConvertibleInt32>
+{
+    public int Value { get; private init; }
+
+    public static ConvertibleInt32 FromUInt32(uint value) => new() { Value = (int)value };
+
+    public static uint ToUInt32(ConvertibleInt32 value) => (uint)value.Value;
+
+    public static implicit operator int(ConvertibleInt32 value) => value.Value;
+
+    public static implicit operator ConvertibleInt32(int value) => new() { Value = value };
+}
+
+internal readonly struct PermutationMatrix
 {
     public int Size => RowPositions.Length;
-    public byte[] RowPositions { get; private init; }
-    public Piece[] RowValues { get; private init; }
+    public SixBitArray<ConvertibleInt32> RowPositions { get; private init; }
+    public SixBitArray<Piece> RowValues { get; private init; }
 
-    public Piece this[int i, int j] => RowPositions[i] == j ? RowValues[i] : default!;
-
-    public PermutationMatrix(byte[] rowPositions, Piece[] rowValues)
+    public PermutationMatrix(
+        SixBitArray<ConvertibleInt32> rowPositions,
+        SixBitArray<Piece> rowValues
+    )
     {
-        if (rowPositions is null)
-            throw new ArgumentNullException(nameof(rowPositions));
-        if (rowValues is null)
-            throw new ArgumentNullException(nameof(rowValues));
+#if DEBUG
         if (rowPositions.Length != rowValues.Length)
             throw new ArgumentException(
                 $"{nameof(rowPositions)} and {nameof(rowValues)} must be of the same length."
             );
-        if (rowPositions.Length > 256)
-            throw new ArgumentException("Array was too large.");
         if (rowPositions.Distinct().Count() != rowPositions.Length)
             throw new ArgumentException(
                 $"All elements in {nameof(rowPositions)} must be distinct."
             );
-
+#endif
         RowPositions = rowPositions;
         RowValues = rowValues;
     }
@@ -45,36 +54,24 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
 
     public bool Equals(PermutationMatrix other) => this == other;
 
-    public override int GetHashCode()
-    {
-        int hash = 0;
-        for (int i = 0; i < Size; i++)
-            hash ^= RowPositions[i].GetHashCode() ^ RowValues[i]!.GetHashCode();
-        return hash;
-    }
+    public override int GetHashCode() => RowPositions.GetHashCode() ^ RowValues.GetHashCode();
 
     public PermutationMatrix Clone() =>
-        new() { RowPositions = (byte[])RowPositions.Clone(), RowValues = (Piece[])RowValues.Clone(), };
+        new() { RowPositions = RowPositions, RowValues = RowValues, };
 
     public static PermutationMatrix Identity(int size) =>
         new()
         {
-            RowPositions = Enumerable.Range(0, size).Select(i => (byte)i).ToArray(),
-            RowValues = Enumerable.Range(0, size).Select(i => new Piece() { Value = (byte)(i << 2) }).ToArray(),
+            RowPositions = new(Enumerable.Range(0, size).Select(i => (ConvertibleInt32)i)),
+            RowValues = new(
+                Enumerable.Range(0, size).Select(i => new Piece() { Value = (byte)(i << 2) })
+            ),
         };
-
-    public bool IsIdentity()
-    {
-        for (int i = 0; i < Size; i++)
-            if (RowPositions[i] != i)
-                return false;
-        return true;
-    }
 
     public PermutationMatrix Inverse()
     {
-        byte[] rowPositions = new byte[Size];
-        Piece[] rowValues = new Piece[Size];
+        SixBitArray<ConvertibleInt32> rowPositions = new(Size);
+        SixBitArray<Piece> rowValues = new(Size);
         for (byte i = 0; i < Size; i++)
         {
             int j = RowPositions[i];
@@ -95,84 +92,19 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
         return (power & 0x1) == 0 ? ans : ans * this;
     }
 
-    public PermutationMatrix[] Decompose(PermutationMatrix[] factors)
-    {
-        if (factors.Length <= 0)
-            throw new ArgumentException("Array of matrices to decompose into must not be empty.");
-
-        if (factors.Contains(this))
-            return new PermutationMatrix[] { this };
-
-        if (IsIdentity())
-            return Array.Empty<PermutationMatrix>();
-
-        PermutationMatrix[] factorInverses = factors.Select(f => f.Inverse()).ToArray();
-        // Meet-in-the-middle approach
-        Dictionary<PermutationMatrix, LinkedListView<int>> ring = new() { { this, new() } };
-        Dictionary<PermutationMatrix, LinkedListView<int>> otherRing = factors
-            .Select((m, i) => (m, i))
-            .ToDictionary(kvp => kvp.m, kvp => new LinkedListView<int>(new[] { kvp.i }));
-        HashSet<PermutationMatrix> seen = ring.Concat(otherRing)
-            .Select(x => x.Key)
-            .ToHashSet();
-        bool isReversed = false;
-        while (true)
-        {
-            Dictionary<PermutationMatrix, LinkedListView<int>> newRing = new();
-            foreach (var (matrix, list) in ring)
-            {
-                for (int i = 0; i < factors.Length; i++)
-                {
-                    var factor = isReversed ? factors[i] : factorInverses[i];
-                    var composed = matrix * factor;
-
-                    if (otherRing.TryGetValue(composed, out var otherList))
-                        return (
-                            isReversed
-                                ? list.Append(i).Concat(otherList.Reverse())
-                                : otherList.Append(i).Concat(list.Reverse())
-                        )
-                            .Select(i => factors[i])
-                            .ToArray();
-
-                    if (seen.Contains(composed))
-                        continue;
-
-                    newRing.Add(composed, list.Append(i));
-                    seen.Add(composed);
-                }
-            }
-            isReversed = !isReversed;
-            ring = otherRing;
-            otherRing = newRing;
-        }
-    }
-
-    public static bool operator ==(PermutationMatrix left, PermutationMatrix right)
-    {
-        if (left.Size != right.Size)
-            return false;
-
-        for (int i = 0; i < left.Size; i++)
-            if (left.RowPositions[i] != right.RowPositions[i] || left.RowValues[i] != right.RowValues[i])
-                return false;
-
-        return true;
-    }
+    public static bool operator ==(PermutationMatrix left, PermutationMatrix right) =>
+        left.RowValues == right.RowValues && left.RowPositions == right.RowPositions;
 
     public static bool operator !=(PermutationMatrix left, PermutationMatrix right) =>
-        !(left == right);
+        left.RowValues != right.RowValues || left.RowPositions != right.RowPositions;
 
-    public static PermutationMatrix operator *(
-        PermutationMatrix left,
-        PermutationMatrix right
-    )
+    public static PermutationMatrix operator *(PermutationMatrix left, PermutationMatrix right)
     {
         if (left.Size != right.Size)
             throw new ArgumentException("Matrices must be of same size.");
 
-        byte[] rowPositions = new byte[left.Size];
-        Piece[] rowValues = new Piece[right.Size];
+        SixBitArray<ConvertibleInt32> rowPositions = new(left.Size);
+        SixBitArray<Piece> rowValues = new(right.Size);
         for (int i = 0; i < left.Size; i++)
         {
             int j = left.RowPositions[i];
@@ -180,6 +112,6 @@ readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
             rowPositions[i] = right.RowPositions[j];
         }
 
-        return new PermutationMatrix() { RowValues = rowValues, RowPositions = rowPositions };
+        return new PermutationMatrix() { RowPositions = rowPositions, RowValues = rowValues };
     }
 }
