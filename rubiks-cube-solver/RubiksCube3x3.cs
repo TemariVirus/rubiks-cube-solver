@@ -2,66 +2,7 @@
 
 namespace RubiksCubeSolver;
 
-readonly struct RubiksCube3x3CornerHash : IEquatable<RubiksCube3x3CornerHash>
-{
-    public long Value { get; }
-    public int Distance => (int)(Value >> 40);
-    public long Hash => Value & 0xff_ffff_ffff;
-
-    public RubiksCube3x3CornerHash(long hash, int distance)
-    {
-        Value = (long)distance << 40 | hash;
-    }
-
-    public RubiksCube3x3CornerHash(Span<byte> bytes)
-    {
-        Value =
-            bytes[0]
-            | ((long)bytes[1] << 8)
-            | ((long)bytes[2] << 16)
-            | ((long)bytes[3] << 24)
-            | ((long)bytes[4] << 32)
-            | ((long)bytes[5] << 40);
-    }
-
-    public override bool Equals([NotNullWhen(true)] object? obj) =>
-        obj is RubiksCube3x3CornerHash hash && Equals(hash);
-
-    public bool Equals(RubiksCube3x3CornerHash other) => Hash == other.Hash;
-
-    public override int GetHashCode() => (int)Value;
-}
-
-readonly struct RubiksCube3x3EdgeHash : IEquatable<RubiksCube3x3EdgeHash>
-{
-    public long Value { get; }
-    public int Distance => (int)(Value >> 32);
-    public int Hash => (int)Value;
-
-    public RubiksCube3x3EdgeHash(long hash, int distance)
-    {
-        Value = (long)distance << 30 | hash;
-    }
-
-    public RubiksCube3x3EdgeHash(Span<byte> bytes)
-    {
-        Value =
-            bytes[0]
-            | ((long)bytes[1] << 8)
-            | ((long)bytes[2] << 16)
-            | ((long)bytes[3] << 24)
-            | ((long)bytes[4] << 32);
-    }
-
-    public override bool Equals([NotNullWhen(true)] object? obj) =>
-        obj is RubiksCube3x3EdgeHash hash && Equals(hash);
-
-    public bool Equals(RubiksCube3x3EdgeHash other) => Hash == other.Hash;
-
-    public override int GetHashCode() => Hash;
-}
-
-readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCube3x3>
+internal readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCube3x3>
 {
     #region // Transformations
     static PermutationMatrix None =>
@@ -404,7 +345,7 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
     private static readonly PatternDistancesTable LastSixEdgeDistances =
         new("3x3LastSixEdgeDistances");
 
-    private static readonly Dictionary<RubiksCube3x3, FaceRotation[]> NearSolutions =
+    private static readonly Dictionary<Int128, FaceRotation[]> NearSolutions =
         Solved.GenerateNearSolutions(1);
 
     public PermutationMatrix Matrix { get; init; }
@@ -719,7 +660,7 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
     public FaceRotation[] Solve(out int count)
     {
         count = 0;
-        if (NearSolutions.TryGetValue(this, out FaceRotation[]? solution))
+        if (NearSolutions.TryGetValue((Int128)this, out FaceRotation[]? solution))
             return solution;
 
         solution = new FaceRotation[20];
@@ -738,13 +679,14 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
             {
                 var (cube, rotation, depth) = cubes.Pop();
                 solution[depth - 1] = rotation;
-                if (depth == maxdepth)
-                    if (cube == Solved)
-                        return solution[..depth];
+                if (NearSolutions.TryGetValue((Int128)cube, out FaceRotation[]? solutionEnd))
+                    return solution[..depth].Concat(solutionEnd).ToArray();
 
                 count += IterateAllMoves(cube, rotation, depth, ref nextMaxDepth);
             }
             maxdepth = nextMaxDepth;
+
+            ConsoleHelper.WriteAt($"Searched: {count}", 1, 2);
         }
 
         int IterateAllMoves(
@@ -785,10 +727,10 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
         }
     }
 
-    private Dictionary<RubiksCube3x3, FaceRotation[]> GenerateNearSolutions(int depth)
+    private Dictionary<Int128, FaceRotation[]> GenerateNearSolutions(int depth)
     {
-        Dictionary<RubiksCube3x3, FaceRotation[]> nearSolutions =
-            new() { { this, Array.Empty<FaceRotation>() } };
+        Dictionary<Int128, FaceRotation[]> nearSolutions =
+            new() { { (Int128)this, Array.Empty<FaceRotation>() } };
 
         List<RubiksCube3x3> cubes = new() { this };
         for (int i = 0; i < depth; i++)
@@ -802,8 +744,8 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
 
                     if (
                         !nearSolutions.TryAdd(
-                            rotated,
-                            nearSolutions[cube].Prepend(fr.ReverseRotation()).ToArray()
+                            (Int128)rotated,
+                            nearSolutions[(Int128)cube].Prepend(fr.ReverseRotation()).ToArray()
                         )
                     )
                         continue;
@@ -811,6 +753,7 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                     nextCubes.Add(rotated);
                 }
             }
+            cubes = nextCubes;
         }
 
         return nearSolutions;
@@ -843,7 +786,6 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
     private int GetFirstSixEdgesPermIndex()
     {
         const int OFFSET = 8;
-        const int ORIENTATION_RANKS_COUNT = 64; // 64 = 2^6
 
         int permutationRank = 0;
         int orientationRank = 0;
@@ -859,17 +801,16 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                     permutationRank--;
             usedIndices[pos] = true;
 
-            orientationRank *= 2;
-            orientationRank += Matrix.RowValues[index].Parity;
+            orientationRank <<= 1;
+            orientationRank |= Matrix.RowValues[index].Parity;
         }
 
-        return permutationRank * ORIENTATION_RANKS_COUNT + orientationRank;
+        return (permutationRank << 6) | orientationRank;
     }
 
     private int GetLastSixEdgesPermIndex()
     {
         const int OFFSET = 8 + 6;
-        const int ORIENTATION_RANKS_COUNT = 64; // 64 = 2^6
 
         int permutationRank = 0;
         int orientationRank = 0;
@@ -885,21 +826,49 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
                     permutationRank--;
             usedIndices[pos] = true;
 
-            orientationRank *= 2;
-            orientationRank += Matrix.RowValues[index].Parity;
+            orientationRank <<= 1;
+            orientationRank |= Matrix.RowValues[index].Parity;
         }
 
-        return permutationRank * ORIENTATION_RANKS_COUNT + orientationRank;
+        return (permutationRank << 6) | orientationRank;
     }
 
-    private int GetSolveLengthLowerBound() =>
-        Math.Max(
-            Math.Max(
-                CornerDistances.GetDistance(GetCornerPermIndex()),
-                FirstSixEdgeDistances.GetDistance(GetFirstSixEdgesPermIndex())
-            ),
-            LastSixEdgeDistances.GetDistance(GetLastSixEdgesPermIndex())
-        );
+    public int GetLastSevenEdgesPermIndex()
+    {
+        const int OFFSET = 8 + 5;
+
+        int permutationRank = 0;
+        int orientationRank = 0;
+        Span<bool> usedIndices = stackalloc bool[12];
+        for (int i = 0; i < 7; i++)
+        {
+            int index = i + OFFSET;
+            int pos = Matrix.RowPositions[index] - 8;
+            permutationRank *= 12 - i;
+            permutationRank += pos;
+            for (int j = 0; j < pos; j++)
+                if (usedIndices[j])
+                    permutationRank--;
+            usedIndices[pos] = true;
+
+            orientationRank <<= 1;
+            orientationRank |= Matrix.RowValues[index].Parity;
+        }
+
+        return (permutationRank << 7) | orientationRank;
+    }
+
+    private int GetSolveLengthLowerBound()
+    {
+        int dist1 = CornerDistances.GetDistance(GetCornerPermIndex());
+        int dist2 = FirstSixEdgeDistances.GetDistance(GetFirstSixEdgesPermIndex());
+        int dist3 = LastSixEdgeDistances.GetDistance(GetLastSixEdgesPermIndex());
+        if (dist1 >= dist2 && dist1 >= dist3)
+            return dist1;
+        if (dist2 >= dist3)
+            return dist2;
+        return dist3;
+    }
 
     public override int GetHashCode() => ((Int128)this).GetHashCode();
 
@@ -921,10 +890,29 @@ readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<RubiksCub
             ans |=
                 (Int128)(cube.Matrix.RowValues[i].Parity << 3 | cube.Matrix.RowPositions[i])
                 << (i * 6);
-        for (int i = 9; i < 20; i++)
+        for (int i = 8; i < 20; i++)
             ans |=
                 (Int128)(cube.Matrix.RowValues[i].Parity << 5 | cube.Matrix.RowPositions[i])
                 << (i * 6);
         return ans;
+    }
+
+    public static explicit operator RubiksCube3x3(Int128 value)
+    {
+        SixBitArray<ConvertibleInt32> rowPositions = new(20);
+        SixBitArray<Piece> rowValues = new(20);
+        for (int i = 0; i < 8; i++)
+        {
+            rowPositions[i] = (int)value & 0x7;
+            rowValues[i] = new() { Value = (byte)((i << 2) | ((byte)value >> 3 & 0x3)) };
+            value >>= 6;
+        }
+        for (int i = 8; i < 20; i++)
+        {
+            rowPositions[i] = (int)value & 0x1f;
+            rowValues[i] = new() { Value = (byte)((i << 2) | ((byte)value >> 5 & 0x1)) };
+            value >>= 6;
+        }
+        return new() { Matrix = new(rowPositions, rowValues) };
     }
 }

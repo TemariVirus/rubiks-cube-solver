@@ -40,24 +40,12 @@ internal readonly struct PermutationMatrix
         RowValues = rowValues;
     }
 
-    public Piece GetRowValue(int rowIndex) => RowValues[rowIndex];
-
     public Piece GetColumnValue(int columnIndex)
     {
         for (int i = 0; true; i++)
             if (RowPositions[i] == columnIndex)
                 return RowValues[i];
     }
-
-    public override bool Equals([NotNullWhen(true)] object? obj) =>
-        obj is PermutationMatrix matrix && this == matrix;
-
-    public bool Equals(PermutationMatrix other) => this == other;
-
-    public override int GetHashCode() => RowPositions.GetHashCode() ^ RowValues.GetHashCode();
-
-    public PermutationMatrix Clone() =>
-        new() { RowPositions = RowPositions, RowValues = RowValues, };
 
     public static PermutationMatrix Identity(int size) =>
         new()
@@ -92,24 +80,32 @@ internal readonly struct PermutationMatrix
         return (power & 0x1) == 0 ? ans : ans * this;
     }
 
+    public override bool Equals([NotNullWhen(true)] object? obj) =>
+       obj is PermutationMatrix matrix && this == matrix;
+
+    public bool Equals(PermutationMatrix other) => this == other;
+
+    public override int GetHashCode() => RowPositions.GetHashCode() ^ RowValues.GetHashCode();
+
     public static bool operator ==(PermutationMatrix left, PermutationMatrix right) =>
         left.RowValues == right.RowValues && left.RowPositions == right.RowPositions;
-
     public static bool operator !=(PermutationMatrix left, PermutationMatrix right) =>
         left.RowValues != right.RowValues || left.RowPositions != right.RowPositions;
-
     public static PermutationMatrix operator *(PermutationMatrix left, PermutationMatrix right)
     {
+#if DEBUG
         if (left.Size != right.Size)
             throw new ArgumentException("Matrices must be of same size.");
+#endif
 
-        SixBitArray<ConvertibleInt32> rowPositions = new(left.Size);
+        int leftSize = left.Size;
+        SixBitArray<ConvertibleInt32> rowPositions = new(leftSize);
         SixBitArray<Piece> rowValues = new(right.Size);
-        for (int i = 0; i < left.Size; i++)
+        for (int i = 0; i < leftSize; i++)
         {
             int j = left.RowPositions[i];
             rowValues[i] = left.RowValues[i] * right.RowValues[j];
-            rowPositions[i] = right.RowPositions[j];
+            right.RowPositions.CopyValue(j, rowPositions, i);
         }
 
         return new PermutationMatrix() { RowPositions = rowPositions, RowValues = rowValues };

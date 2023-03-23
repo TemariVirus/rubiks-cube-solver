@@ -8,7 +8,7 @@ internal interface IUInt32conversions<T>
     public static abstract T FromUInt32(uint value);
 }
 
-internal record struct SixBitArray<T> : IEnumerable<T>
+internal record SixBitArray<T> : IEnumerable<T>
     where T : IUInt32conversions<T>
 {
     private const int MAX_LENGTH = 20;
@@ -77,6 +77,20 @@ internal record struct SixBitArray<T> : IEnumerable<T>
         SixBitArray<T> newArray = new() { Data = Data, Length = Length + 1 };
         newArray[Length] = item;
         return newArray;
+    }
+
+    public void CopyValue(int srcIndex, SixBitArray<T> dst, int dstIndex)
+    {
+#if DEBUG
+        if (srcIndex < 0
+            || srcIndex > Length
+            || dstIndex < 0
+            || dstIndex > dst.Length)
+            throw new IndexOutOfRangeException();
+#endif
+        UInt128 value = (Data >> (srcIndex * ITEM_SIZE)) & ITEM_MASK;
+        dst.Data &= ~((UInt128)ITEM_MASK << (dstIndex * ITEM_SIZE));
+        dst.Data |= value << (dstIndex * ITEM_SIZE);
     }
 
     public IEnumerator<T> GetEnumerator()

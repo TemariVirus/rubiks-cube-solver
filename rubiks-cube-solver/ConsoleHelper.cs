@@ -1,6 +1,6 @@
 ﻿namespace RubiksCubeSolver;
 
-static class ConsoleHelper
+internal static class ConsoleHelper
 {
     public static void Resize(int width, int height)
     {

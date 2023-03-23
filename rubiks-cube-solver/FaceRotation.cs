@@ -2,14 +2,14 @@
 
 namespace RubiksCubeSolver;
 
-enum FaceRotationModifier : byte
+internal enum FaceRotationModifier : byte
 {
     Clockwise = 8,
     Double = 16,
     AntiClockwise = 24,
 }
 
-enum FaceRotation : byte
+internal enum FaceRotation : byte
 {
     R = FaceRotationModifier.Clockwise,
     L,
@@ -31,7 +31,7 @@ enum FaceRotation : byte
     BPrime,
 }
 
-static class FaceRotationExtensions
+internal static class FaceRotationExtensions
 {
     public static readonly ImmutableArray<FaceRotation> Rotations = (
         (FaceRotation[])Enum.GetValues(typeof(FaceRotation))

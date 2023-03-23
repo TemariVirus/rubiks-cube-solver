@@ -1,6 +1,6 @@
 ﻿namespace RubiksCubeSolver;
 
-interface IRubiksCube<TSelf>
+internal interface IRubiksCube<TSelf>
     where TSelf : IRubiksCube<TSelf>, IEquatable<TSelf>
 {
     public static abstract TSelf Solved { get; }
@@ -23,7 +23,7 @@ interface IRubiksCube<TSelf>
     public FaceRotation[] Solve(out int count);
 }
 
-static class RubiksCubeExtensions
+internal static class RubiksCubeExtensions
 {
     public static T MakeRotation<T>(this T cube, FaceRotation rotation)
         where T : IRubiksCube<T>, IEquatable<T> =>

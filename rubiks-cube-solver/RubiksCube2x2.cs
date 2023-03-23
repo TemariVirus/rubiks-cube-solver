@@ -2,7 +2,7 @@
 
 namespace RubiksCubeSolver;
 
-readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCube2x2>
+internal readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCube2x2>
 {
     #region // Transformations
     static PermutationMatrix None =>
@@ -519,8 +519,8 @@ readonly struct RubiksCube2x2 : IRubiksCube<RubiksCube2x2>, IEquatable<RubiksCub
     {
         PermutationMatrix matrix = cube.RotateToFixed().Matrix;
         long ans = 0;
-        for (int i = 0; i < matrix.Size; i++)
-            ans |= (long)(matrix.GetRowValue(i).Parity << 3 | matrix.RowPositions[i]) << (i * 7);
+        for (int i = 0; i < 8; i++)
+            ans |= (long)(matrix.RowValues[i].Parity << 3 | matrix.RowPositions[i]) << (i * 7);
         return ans;
     }
 }

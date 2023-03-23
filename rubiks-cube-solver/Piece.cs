@@ -1,6 +1,6 @@
 ﻿namespace RubiksCubeSolver;
 
-readonly record struct Piece : IUInt32conversions<Piece>
+internal readonly record struct Piece : IUInt32conversions<Piece>
 {
     static readonly ConsoleColor[][] Colors =
     {
@@ -56,8 +56,10 @@ readonly record struct Piece : IUInt32conversions<Piece>
 
     public Piece Rotate(int rotation)
     {
-        int newParity = (Parity + rotation) % (IsCorner ? 3 : 2);
-        return new() { Value = (byte)((Value & ~0x3) | newParity) };
+        int newParity = IsCorner
+            ? (Parity + rotation) % 3
+            : (Parity + rotation) & 0x1;
+        return new() { Value = (byte)((Value & 0x7c) | newParity) };
     }
 
     public Piece Inverse()

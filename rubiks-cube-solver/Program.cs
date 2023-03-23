@@ -1,7 +1,7 @@
 ﻿using RubiksCubeSolver;
 using System.Diagnostics;
 
-sealed class Program
+internal sealed class Program
 {
     const int X_OFFSET = 4;
     const int Y_OFFSET = 5;
@@ -20,36 +20,42 @@ sealed class Program
     public static void Main()
     {
         #region // Generate pattern distance tables
-        //using var f = File.Open("3x3LastSixEdgeDistances", FileMode.Create);
-        //byte[] distances = new byte[21_288_960];
+        //using var f = File.Open("3x3LastSevenEdgeDistances", FileMode.Create);
+        //byte[] distances = new byte[255_467_520];
 
-        //List<RubiksCube3x3> cubes = new() { RubiksCube3x3.Solved };
-        //HashSet<int> cornerPermutations = new(cubes.Select(c => c.GetLastSixEdgesPermIndex()));
-        //var rotations = (FaceRotation[])Enum.GetValues(typeof(FaceRotation));
-        //for (int moves = 1; cubes.Count > 0; moves++)
+        //int maxDepth = 0;
+        //Queue<(Int128, int)> cubes = new();
+        //cubes.Enqueue(((Int128)RubiksCube3x3.Solved, 0));
+        //while (cubes.Count > 0)
         //{
-        //    List<RubiksCube3x3> newCubes = new();
-        //    foreach (var c in cubes)
+        //    var (c, depth) = cubes.Dequeue();
+        //    var cube = (RubiksCube3x3)c;
+        //    depth++;
+        //    foreach (FaceRotation fr in FaceRotationExtensions.Rotations)
         //    {
-        //        foreach (FaceRotation fr in rotations)
+        //        var rotated = cube.MakeRotation(fr);
+        //        int index = rotated.GetLastSevenEdgesPermIndex();
+        //        bool indexIsEven = (index % 2) == 0;
+        //        int indexOverTwo = index / 2;
+        //        int val = indexIsEven
+        //            ? distances[indexOverTwo] & 0xf
+        //            : distances[indexOverTwo] >> 4;
+
+        //        if (val != 0)
         //        {
-        //            var rotated = c.MakeRotation(fr);
-        //            int index = rotated.GetLastSixEdgesPermIndex();
-        //            if (cornerPermutations.Add(index))
-        //            {
-        //                distances[index / 2] |= (byte)((index % 2 == 0) ? moves : moves << 4);
-        //                newCubes.Add(rotated);
-        //            }
+        //            continue;
         //        }
+
+        //        maxDepth = Math.Max(maxDepth, depth);
+        //        distances[indexOverTwo] |= (byte)(indexIsEven ? depth & 0xf : depth << 4);
+        //        cubes.Enqueue(((Int128)rotated, depth));
         //    }
-        //    cubes = newCubes;
-        //    ConsoleHelper.WriteAt($"Depth: {moves}", 1, 0);
-        //    ConsoleHelper.WriteAt($"Positions: {cornerPermutations.Count}", 1, 1);
         //}
+        //ConsoleHelper.WriteAt($"Depth: {maxDepth}", 1, 0);
         //f.Write(distances);
         #endregion
 
-        ConsoleHelper.Resize(32, 14);
+        ConsoleHelper.Resize(32, 15);
         cube.DrawCube(X_OFFSET, Y_OFFSET);
 
         // Main loop
@@ -77,11 +83,8 @@ sealed class Program
 
             ConsoleHelper.WriteAt("".PadLeft(Console.BufferWidth), 0, 0);
             ConsoleHelper.WriteAt(solution.Any() ? string.Join(' ', solution) : "Solved", 1, 0);
-            Console.CursorLeft = 1;
-            Console.CursorTop++;
-            Console.WriteLine($"Searched: {nodeCount}");
-            Console.CursorLeft = 1;
-            Console.WriteLine($"Time Taken: {sw.Elapsed.TotalSeconds:f3}s");
+            ConsoleHelper.WriteAt($"Searched: {nodeCount}", 1, 2);
+            ConsoleHelper.WriteAt($"Time Taken: {sw.Elapsed}s", 1, 3);
             cube.DrawCube(X_OFFSET, Y_OFFSET);
         }
 
