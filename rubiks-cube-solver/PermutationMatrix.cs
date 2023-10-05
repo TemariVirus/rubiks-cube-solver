@@ -15,7 +15,7 @@ internal readonly record struct ConvertibleInt32 : IUInt32conversions<Convertibl
     public static implicit operator ConvertibleInt32(int value) => new() { Value = value };
 }
 
-internal readonly struct PermutationMatrix
+internal readonly struct PermutationMatrix : IEquatable<PermutationMatrix>
 {
     public int Size => RowPositions.Length;
     public SixBitArray<ConvertibleInt32> RowPositions { get; private init; }

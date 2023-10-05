@@ -20,38 +20,41 @@ internal sealed class Program
     public static void Main()
     {
         #region // Generate pattern distance tables
-        //using var f = File.Open("3x3LastSevenEdgeDistances", FileMode.Create);
-        //byte[] distances = new byte[255_467_520];
+        //using var f = File.Open("3x3PieceOrientationDistances", FileMode.Create);
+        //byte[] distances = new byte[2_239_488];
 
-        //int maxDepth = 0;
-        //Queue<(Int128, int)> cubes = new();
-        //cubes.Enqueue(((Int128)RubiksCube3x3.Solved, 0));
-        //while (cubes.Count > 0)
+        //int count = 0;
+        //List<RubiksCube3x3> cubes = new() { RubiksCube3x3.Solved };
+        //for (int depth = 1; cubes.Count > 0; depth++)
         //{
-        //    var (c, depth) = cubes.Dequeue();
-        //    var cube = (RubiksCube3x3)c;
-        //    depth++;
-        //    foreach (FaceRotation fr in FaceRotationExtensions.Rotations)
+        //    List<RubiksCube3x3> newCubes = new();
+        //    foreach (var cube in cubes)
         //    {
-        //        var rotated = cube.MakeRotation(fr);
-        //        int index = rotated.GetLastSevenEdgesPermIndex();
-        //        bool indexIsEven = (index % 2) == 0;
-        //        int indexOverTwo = index / 2;
-        //        int val = indexIsEven
-        //            ? distances[indexOverTwo] & 0xf
-        //            : distances[indexOverTwo] >> 4;
-
-        //        if (val != 0)
+        //        foreach (FaceRotation fr in FaceRotationExtensions.Rotations)
         //        {
-        //            continue;
-        //        }
+        //            var rotated = cube.MakeRotation(fr);
+        //            int index = rotated.GetPieceOrientationPermIndex();
 
-        //        maxDepth = Math.Max(maxDepth, depth);
-        //        distances[indexOverTwo] |= (byte)(indexIsEven ? depth & 0xf : depth << 4);
-        //        cubes.Enqueue(((Int128)rotated, depth));
+        //            bool indexIsEven = (index % 2) == 0;
+        //            int indexOverTwo = index / 2;
+        //            int val = indexIsEven
+        //                ? distances[indexOverTwo] & 0xf
+        //                : distances[indexOverTwo] >> 4;
+
+        //            // Skip if seen
+        //            if (val != 0 || rotated == RubiksCube3x3.Solved)
+        //                continue;
+
+        //            distances[indexOverTwo] |= (byte)(indexIsEven ? depth : depth << 4);
+        //            newCubes.Add(rotated);
+        //        }
         //    }
+        //    count += cubes.Count;
+        //    if (newCubes.Count > 0)
+        //        ConsoleHelper.WriteAt($"Depth: {depth}", 1, 0);
+        //    ConsoleHelper.WriteAt($"Count: {count}", 1, 1);
+        //    cubes = newCubes;
         //}
-        //ConsoleHelper.WriteAt($"Depth: {maxDepth}", 1, 0);
         //f.Write(distances);
         #endregion
 

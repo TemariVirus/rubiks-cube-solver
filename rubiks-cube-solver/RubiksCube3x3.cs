@@ -763,10 +763,12 @@ internal readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<
     {
         const int ORIENTATION_RANKS_COUNT = 2187; // 2187 = 3^7
 
-        int permutationRank = 0;
-        int orientationRank = 0;
+        int permutationRank = Matrix.RowPositions[7];
+        int orientationRank = Matrix.RowValues[7].Parity;
         Span<bool> usedIndices = stackalloc bool[8];
-        for (int i = 7; i > 0; i--)
+        usedIndices[permutationRank] = true;
+        permutationRank *= 7;
+        for (int i = 6; i > 0; i--)
         {
             int pos = Matrix.RowPositions[i];
             permutationRank += pos;
@@ -833,29 +835,21 @@ internal readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<
         return (permutationRank << 6) | orientationRank;
     }
 
-    public int GetLastSevenEdgesPermIndex()
+    public int GetPieceOrientationPermIndex()
     {
-        const int OFFSET = 8 + 5;
-
-        int permutationRank = 0;
-        int orientationRank = 0;
-        Span<bool> usedIndices = stackalloc bool[12];
-        for (int i = 0; i < 7; i++)
+        int orientationRank = Matrix.RowValues[0].Parity;
+        for (int i = 1; i < 7; i++)
         {
-            int index = i + OFFSET;
-            int pos = Matrix.RowPositions[index] - 8;
-            permutationRank *= 12 - i;
-            permutationRank += pos;
-            for (int j = 0; j < pos; j++)
-                if (usedIndices[j])
-                    permutationRank--;
-            usedIndices[pos] = true;
-
+            orientationRank *= 3;
+            orientationRank += Matrix.RowValues[i].Parity;
+        }
+        for (int i = 8; i < 19; i++)
+        {
             orientationRank <<= 1;
-            orientationRank |= Matrix.RowValues[index].Parity;
+            orientationRank |= Matrix.RowValues[i].Parity;
         }
 
-        return (permutationRank << 7) | orientationRank;
+        return orientationRank;
     }
 
     private int GetSolveLengthLowerBound()
@@ -878,10 +872,10 @@ internal readonly struct RubiksCube3x3 : IRubiksCube<RubiksCube3x3>, IEquatable<
     public bool Equals(RubiksCube3x3 other) => this == other;
 
     public static bool operator ==(RubiksCube3x3 left, RubiksCube3x3 right) =>
-        (Int128)left == (Int128)right;
+        left.Matrix == right.Matrix;
 
     public static bool operator !=(RubiksCube3x3 left, RubiksCube3x3 right) =>
-        (Int128)left != (Int128)right;
+        left.Matrix != right.Matrix;
 
     public static explicit operator Int128(RubiksCube3x3 cube)
     {

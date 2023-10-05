@@ -25,7 +25,7 @@ internal record SixBitArray<T> : IEnumerable<T>
             if (value < 0 || value > MAX_LENGTH)
                 throw new ArgumentOutOfRangeException(nameof(value));
 #endif
-            Data &= (UInt128.One << (MAX_LENGTH * ITEM_SIZE)) - 1;
+            Data &= new UInt128(ulong.MaxValue >> (128 - MAX_LENGTH * ITEM_SIZE), ulong.MaxValue);
             Data |= (UInt128)value << (MAX_LENGTH * ITEM_SIZE);
         }
     }
